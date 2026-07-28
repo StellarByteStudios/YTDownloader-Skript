@@ -1,14 +1,17 @@
 @echo off
 
-:: Laden des Interpreters (für Virtuelle Umgebung)
-set VENV_PYTHON="D:\Programmierung\Stuff\Youtube Downloader\YTDownloader-Skript\downloader.venv\Scripts\python.exe"
+set SCRIPT_DIR=%~dp0
+set VENV_DIR=%SCRIPT_DIR%downloader.venv-win
+set SCRIPT_PATH=%SCRIPT_DIR%ytdownloader.py
 
-:: Pfad zum Skript
-set SCRIPT_PATH="D:\Programmierung\Stuff\Youtube Downloader\YTDownloader-Skript\ytdownloader.py"
+if not exist "%VENV_DIR%" (
+    echo Erstelle virtuelle Umgebung fuer Windows...
+    python -m venv "%VENV_DIR%"
+    "%VENV_DIR%\Scripts\pip.exe" install -r "%SCRIPT_DIR%requirements.txt"
+)
 
 echo "%CD%"
 
-:: Ausführung: Interpreter; Skript; Pfad von wo aus ausgeführt wird
-%VENV_PYTHON% %SCRIPT_PATH% "%CD%"
+"%VENV_DIR%\Scripts\python.exe" "%SCRIPT_PATH%" "%CD%"
 
 pause
