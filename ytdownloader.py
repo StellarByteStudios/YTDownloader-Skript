@@ -1,8 +1,13 @@
 import yt_dlp
 import os
 import sys
+import time
 import spotdl as spotdl_lib
 from spotdl.utils.config import DEFAULT_CONFIG
+
+MAX_RETRIES = 3        # Wie oft ein fehlgeschlagener Song erneut versucht wird
+RETRY_DELAY = 5         # Wartezeit in Sekunden zwischen den Versuchen
+
 
 
 def download_youtube_audio(url, target_folder):
@@ -53,24 +58,82 @@ def download_spotify_playlist(url, target_folder):
     # Spotify-App-Zugangsdaten (Client-ID/Secret) werden von spotdl
     # standardmäßig mitgeliefert. Falls das nicht funktioniert, siehe
     # Hinweis am Ende der Datei zum Erstellen eigener Zugangsdaten.
-    spotdl = spotdl_lib.Spotdl(
+    client = spotdl_lib.Spotdl(
         client_id=DEFAULT_CONFIG["client_id"],
         client_secret=DEFAULT_CONFIG["client_secret"],
         downloader_settings={
-            "output": os.path.join(target_folder, "{title} - {artist}.{output-ext}"),
+            # "output": os.path.join(target_folder, "{title} - {artist}.{output-ext}"),
+            "output": os.path.join(target_folder, "{artist}", "{album} ({year})", "{track-number} - {title} - {artist}.{output-ext}"),
             "format": "mp3",
         },
     )
  
     try:
         print(f"\n--- Suche Songs der Spotify-Playlist ---")
-        songs = spotdl.search([url])
+ 
+        # Versuche die Metadaten von Spotify zu crawlen
+        songs = []
+        for versuch in range(1, MAX_RETRIES + 1):
+            try:
+                songs = client.search([url])
+                break
+            except Exception as e:
+                print(f"Suche fehlgeschlagen (Versuch {versuch}/{MAX_RETRIES}): {e}")
+                if versuch < MAX_RETRIES:
+                    time.sleep(RETRY_DELAY)
+                else:
+                    raise
+ 
+        # Alle Metadaten zusammen
         print(f"{len(songs)} Song(s) gefunden. Starte Download in: {target_folder}\n")
  
-        results = spotdl.download_songs(songs)
+
+
+        # Songs von YT Downloaden
+        results = client.download_songs(songs)
  
-        erfolgreich = sum(1 for song, path in results if path is not None)
+
+
+
+        # Fehlgeschlagene Songs sammeln und erneut versuchen
+        erfolgreich_ergebnisse = [(s, p) for s, p in results if p is not None]
+        fehlgeschlagen = [s for s, p in results if p is None]
+ 
+
+        # Fehlerhafte Downloads nochmal neu probieren
+        versuch = 1
+        while (len(fehlgeschlagen) > 0) and (versuch <= MAX_RETRIES):
+            print(f"\n{len(fehlgeschlagen)} Song(s) fehlgeschlagen. "
+                  f"Erneuter Versuch {versuch}/{MAX_RETRIES} in {RETRY_DELAY}s...")
+            time.sleep(RETRY_DELAY)
+ 
+            noch_fehlgeschlagen = []
+            for song in fehlgeschlagen:
+                try:
+                    _, pfad = client.download(song)
+                    if pfad is not None:
+                        erfolgreich_ergebnisse.append((song, pfad))
+                    else:
+                        noch_fehlgeschlagen.append(song)
+                except Exception as e:
+                    print(f"  Weiterhin fehlgeschlagen: {song.display_name} - {e}")
+                    noch_fehlgeschlagen.append(song)
+ 
+            fehlgeschlagen = noch_fehlgeschlagen
+            versuch += 1
+ 
+        results = erfolgreich_ergebnisse
+ 
+        erfolgreich = len(results)
         print(f"\nFertig! {erfolgreich}/{len(songs)} Songs erfolgreich heruntergeladen.")
+ 
+
+        if fehlgeschlagen:
+            print(f"Endgültig fehlgeschlagen ({len(fehlgeschlagen)}):")
+            for song in fehlgeschlagen:
+                print(f"  - {song.display_name}")
+
+
     except Exception as e:
         print(f"Hoppla, da lief was schief: {e}")
  
