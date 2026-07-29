@@ -168,30 +168,51 @@ if __name__ == "__main__":
         start_dir = sys.argv[1]
     else:
         start_dir = os.getcwd()
+
+
+    # So lange True, wie noch Zeug heruntergeladen werden soll
+    extra_round = True
  
-    print(f"--- YouTube / Spotify Downloader ---")
-    print(f"Aktueller Pfad: {start_dir}\n")
- 
-    link = input("YouTube- oder Spotify-Link: ").strip()
- 
-    # Nutzer fragen, ob er den Pfad ändern will, sonst einfach Enter
-    folder_input = input(f"Zielordner (Enter für aktuellen Ordner): ").strip()
- 
-    # Wenn keine Eingabe erfolgt, nimm den aktuellen Ordner
-    if folder_input:
-        target = os.path.join(start_dir, folder_input)
-    else:
-        target = start_dir
- 
-    if not link:
-        print("Abgebrochen: Kein Link vorhanden.")
-        sys.exit(0)
- 
-    plattform = erkenne_plattform(link)
- 
-    if plattform == "youtube":
-        download_youtube_audio(link, target)
-    elif plattform == "spotify":
-        download_spotify_playlist(link, target)
-    else:
-        print("Abgebrochen: Der Link wurde weder als YouTube- noch als Spotify-Link erkannt.")
+
+    while extra_round:
+
+        extra_round = False
+
+        print(f"--- YouTube / Spotify Downloader ---")
+        print(f"Aktueller Pfad: {start_dir}\n")
+    
+        link = input("YouTube- oder Spotify-Link: ").strip()
+    
+        # Nutzer fragen, ob er den Pfad ändern will, sonst einfach Enter
+        folder_input = input(f"Zielordner (Enter für aktuellen Ordner): ").strip()
+    
+        # Wenn keine Eingabe erfolgt, nimm den aktuellen Ordner
+        if folder_input:
+            target = os.path.join(start_dir, folder_input)
+        else:
+            target = start_dir
+    
+        if not link:
+            print("Abgebrochen: Kein Link vorhanden.")
+            sys.exit(0)
+    
+        plattform = erkenne_plattform(link)
+    
+        if plattform == "youtube":
+            download_youtube_audio(link, target)
+        elif plattform == "spotify":
+            download_spotify_playlist(link, target)
+        else:
+            print("Abgebrochen: Der Link wurde weder als YouTube- noch als Spotify-Link erkannt.")
+
+
+        """ Funktioniert noch nicht
+        # Weitermachen?
+        another_download = input(f"Nochwas herunterladen? [y, j, ja, yes]").strip().lower()
+
+        # Set an möglichen antworten
+        yesses = {"y", "yes", "j", "ja"}
+        if another_download in yesses:
+            extra_round = True
+        """
+        
